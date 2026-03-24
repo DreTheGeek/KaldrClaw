@@ -258,7 +258,25 @@ function buildMcpConfig(): Record<string, any> {
     };
   }
 
-  // Tavily web search MCP
+  // Brave Search MCP
+  if (process.env.BRAVE_API_KEY) {
+    config.mcpServers["brave-search"] = {
+      command: "npx",
+      args: ["-y", "@anthropic-ai/mcp-server-brave-search"],
+      env: { BRAVE_API_KEY: process.env.BRAVE_API_KEY },
+    };
+  }
+
+  // Firecrawl MCP — scrape/read full web pages
+  if (process.env.FIRECRAWL_API_KEY) {
+    config.mcpServers["firecrawl"] = {
+      command: "npx",
+      args: ["-y", "firecrawl-mcp"],
+      env: { FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY },
+    };
+  }
+
+  // Tavily web search MCP (fallback if Brave not set)
   if (process.env.TAVILY_API_KEY) {
     config.mcpServers["tavily"] = {
       command: "npx",
