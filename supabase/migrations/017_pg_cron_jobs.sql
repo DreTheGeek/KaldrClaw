@@ -1,0 +1,107 @@
+-- ============================================================================
+-- 017: pg_cron Scheduled Jobs
+-- Automated maintenance tasks. Run this AFTER enabling the pg_cron extension
+-- in Supabase Dashboard > Database > Extensions.
+--
+-- NOTE: pg_cron is available on Supabase paid plans. On the free tier, these
+-- jobs must be handled by the bots themselves (query + cleanup in code).
+-- This migration is provided for when you upgrade, or can be run manually.
+-- ============================================================================
+
+-- Enable the extension (requires Supabase dashboard toggle first)
+-- CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- ============================================================================
+-- JOB 1: Clean old activity logs (keep 90 days)
+-- Runs daily at 3 AM UTC. Activity logs grow fast — this prevents bloat.
+-- ============================================================================
+-- SELECT cron.schedule(
+--   'cleanup-activity-log',
+--   '0 3 * * *',
+--   $$DELETE FROM activity_log WHERE created_at < NOW() - INTERVAL '90 days'$$
+-- );
+
+-- ============================================================================
+-- JOB 2: Expire stale fleet memory
+-- Runs every hour. Deactivates memory entries past their expiration date.
+-- ============================================================================
+-- SELECT cron.schedule(
+--   'expire-fleet-memory',
+--   '0 * * * *',
+--   $$UPDATE fleet_memory SET is_active = FALSE, updated_at = NOW()
+--     WHERE expires_at IS NOT NULL AND expires_at < NOW() AND is_active = TRUE$$
+-- );
+
+-- ============================================================================
+-- JOB 3: Mark overdue tasks
+-- Runs daily at 6 AM UTC (1 AM ET). Flags tasks past their due date.
+-- Does NOT auto-change status — just logs for briefing visibility.
+-- ============================================================================
+-- SELECT cron.schedule(
+--   'flag-overdue-tasks',
+--   '0 6 * * *',
+--   $$INSERT INTO activity_log (bot_name, action, category, severity, summary, details)
+--     SELECT 'system', 'task_overdue', 'task', 'warn',
+--       'Task overdue: ' || title,
+--       jsonb_build_object('task_id', id, 'title', title, 'due_date', due_date, 'assigned_to', assigned_to)
+--     FROM tasks
+--     WHERE status NOT IN ('completed', 'cancelled')
+--       AND due_date < NOW()
+--       AND id NOT IN (
+--         SELECT (details->>'task_id')::uuid FROM activity_log
+--         WHERE action = 'task_overdue' AND created_at > NOW() - INTERVAL '24 hours'
+--       )$$
+-- );
+
+-- ============================================================================
+-- JOB 4: Expire old reminders
+-- Runs daily at 4 AM UTC. Marks pending one-time reminders that are >48h past
+-- their scheduled time as expired (user probably saw it or doesn't need it).
+-- ============================================================================
+-- SELECT cron.schedule(
+--   'expire-old-reminders',
+--   '0 4 * * *',
+--   $$UPDATE reminders SET status = 'expired', updated_at = NOW()
+--     WHERE status = 'pending'
+--       AND is_recurring = FALSE
+--       AND remind_at < NOW() - INTERVAL '48 hours'$$
+-- );
+
+-- ============================================================================
+-- JOB 5: Clean old conversation history (keep 180 days)
+-- Runs weekly on Sunday at 4 AM UTC. Conversations are the second largest
+-- table after activity_log.
+-- ============================================================================
+-- SELECT cron.schedule(
+--   'cleanup-conversations',
+--   '0 4 * * 0',
+--   $$DELETE FROM conversations WHERE created_at < NOW() - INTERVAL '180 days'$$
+-- );
+
+-- ============================================================================
+-- JOB 6: Update wellness streaks
+-- Runs daily at 7 AM UTC (2 AM ET). If yesterday's goal was not completed,
+-- resets the streak to 0. If completed, increments were already handled by
+-- the bot, but this is a safety net.
+-- ============================================================================
+-- SELECT cron.schedule(
+--   'update-wellness-streaks',
+--   '0 7 * * *',
+--   $$UPDATE wellness SET streak_days = 0, updated_at = NOW()
+--     WHERE tracking_date = CURRENT_DATE - 1
+--       AND completed = FALSE
+--       AND streak_days > 0$$
+-- );
+
+-- ============================================================================
+-- NOTES FOR MANUAL EXECUTION (Free tier workaround):
+--
+-- If pg_cron is not available, add these queries as periodic tasks in Ava's
+-- schedule config (bot_configs.schedule), running as part of the morning
+-- briefing preparation:
+--
+-- 1. DELETE FROM activity_log WHERE created_at < NOW() - INTERVAL '90 days';
+-- 2. UPDATE fleet_memory SET is_active = FALSE WHERE expires_at < NOW() AND is_active = TRUE;
+-- 3. Query overdue tasks for briefing inclusion
+-- 4. UPDATE reminders SET status = 'expired' WHERE status = 'pending' AND is_recurring = FALSE AND remind_at < NOW() - INTERVAL '48 hours';
+-- ============================================================================
