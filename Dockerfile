@@ -10,8 +10,9 @@ RUN curl -fsSL https://bun.sh/install | bash \
     && mv /root/.bun /usr/local/bun
 ENV PATH="/usr/local/bun/bin:$PATH"
 
-# Install Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code@latest
+# Install Claude Code CLI + MCP servers (pre-installed so they don't download at runtime)
+RUN npm install -g @anthropic-ai/claude-code@latest \
+    @supabase/mcp-server-supabase@latest
 
 # Create app directory
 WORKDIR /app

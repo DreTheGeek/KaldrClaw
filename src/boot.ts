@@ -177,10 +177,8 @@ function buildMcpConfig(): Record<string, any> {
   // Supabase MCP — direct database access for the bot
   if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     config.mcpServers["supabase"] = {
-      command: "npx",
+      command: "mcp-server-supabase",
       args: [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
         "--supabase-url",
         process.env.SUPABASE_URL,
         "--supabase-service-role-key",
