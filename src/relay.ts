@@ -153,7 +153,7 @@ async function spawnClaude(prompt: string, model: string): Promise<string> {
     cwd: WORKSPACE,
     env: {
       ...process.env,
-      HOME: "/root",
+      HOME: process.env.HOME || "/home/node",
     },
     stdout: "pipe",
     stderr: "pipe",

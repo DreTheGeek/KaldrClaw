@@ -5,9 +5,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl ca-certificates unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Bun
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
+# Install Bun (as root, then move to shared path)
+RUN curl -fsSL https://bun.sh/install | bash \
+    && mv /root/.bun /usr/local/bun
+ENV PATH="/usr/local/bun/bin:$PATH"
 
 # Install Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code@latest
@@ -20,10 +21,14 @@ RUN bun install --frozen-lockfile 2>/dev/null || bun install
 # Copy source
 COPY . .
 
-# Create persist directory (volume mount point)
-RUN mkdir -p /app/persist /app/persist/.claude /app/persist/workspace /app/persist/workspace/memory
+# Create persist directory and set ownership to node user
+RUN mkdir -p /app/persist /app/persist/.claude /app/persist/workspace /app/persist/workspace/memory \
+    && chown -R node:node /app /app/persist
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
+
+# Run as non-root user (node user comes with the node image)
+USER node
 
 ENTRYPOINT ["/app/entrypoint.sh"]
