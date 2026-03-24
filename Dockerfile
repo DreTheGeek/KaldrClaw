@@ -2,7 +2,7 @@ FROM node:20-slim
 
 # Install system deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl ca-certificates unzip \
+    git curl ca-certificates unzip gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Bun (as root, then move to shared path)
@@ -21,14 +21,11 @@ RUN bun install --frozen-lockfile 2>/dev/null || bun install
 # Copy source
 COPY . .
 
-# Create persist directory and set ownership to node user
-RUN mkdir -p /app/persist /app/persist/.claude /app/persist/workspace /app/persist/workspace/memory \
-    && chown -R node:node /app /app/persist
+# Create persist directory
+RUN mkdir -p /app/persist /app/persist/.claude /app/persist/workspace /app/persist/workspace/memory
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
 
-# Run as non-root user (node user comes with the node image)
-USER node
-
+# Entrypoint runs as root to fix volume permissions, then drops to node
 ENTRYPOINT ["/app/entrypoint.sh"]

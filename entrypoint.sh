@@ -5,23 +5,21 @@ echo "========================================="
 echo "  KaldrClaw — Initializing ${BOT_NAME:-unknown}"
 echo "========================================="
 
-# 1. Set up persistent volume symlinks
-# Railway volume is mounted at /app/persist
+# 1. Fix volume permissions (runs as root)
+# Railway volumes mount as root — we need node user to own them
 mkdir -p /app/persist/.claude /app/persist/workspace /app/persist/workspace/memory
+chown -R node:node /app/persist
 
-# Claude Code stores sessions, auth, plugins at ~/.claude
-# node user home is /home/node
+# Symlink Claude Code home to the volume
 ln -sfn /app/persist/.claude /home/node/.claude
+chown -h node:node /home/node/.claude
 
-# Workspace where SOUL.md, MEMORY.md, CLAUDE.md live
-export WORKSPACE_DIR=/app/persist/workspace
-export HOME=/home/node
+echo "[INIT] Volume permissions fixed"
+echo "[INIT] Workspace: /app/persist/workspace"
 
-echo "[INIT] Volume symlinks ready"
-echo "[INIT] Workspace: $WORKSPACE_DIR"
-echo "[INIT] Claude home: /home/node/.claude -> /app/persist/.claude"
-echo "[INIT] Running as: $(whoami)"
-
-# 2. Start the relay
-echo "[INIT] Starting KaldrClaw relay..."
-exec bun run /app/src/index.ts
+# 2. Drop to node user and start the relay
+echo "[INIT] Starting KaldrClaw relay as node user..."
+exec gosu node env \
+  HOME=/home/node \
+  WORKSPACE_DIR=/app/persist/workspace \
+  bun run /app/src/index.ts
