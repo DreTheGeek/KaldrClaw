@@ -203,15 +203,41 @@ function buildMcpConfig(): Record<string, any> {
     };
   }
 
-  // Google Calendar MCP
+  // Google Calendar MCP — needs credential files, not env vars
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN) {
+    const calConfigDir = join(WORKSPACE, ".calendar-mcp");
+    if (!existsSync(calConfigDir)) mkdirSync(calConfigDir, { recursive: true });
+
+    // Write OAuth credentials file
+    const oauthKeysPath = join(calConfigDir, "gcp-oauth.keys.json");
+    writeFileSync(oauthKeysPath, JSON.stringify({
+      installed: {
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uris: ["http://localhost"],
+      },
+    }));
+
+    // Write tokens file from our refresh token
+    const tokensPath = join(calConfigDir, "tokens.json");
+    if (!existsSync(tokensPath)) {
+      writeFileSync(tokensPath, JSON.stringify({
+        access_token: "",
+        refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+        scope: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+        token_type: "Bearer",
+        expiry_date: 0,
+      }));
+    }
+
+    console.log("[BOOT] Wrote Calendar MCP credential files");
+
     config.mcpServers["calendar"] = {
       command: "npx",
       args: ["-y", "@cocal/google-calendar-mcp"],
       env: {
-        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
-        GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN,
+        GOOGLE_OAUTH_CREDENTIALS: oauthKeysPath,
+        GOOGLE_CALENDAR_MCP_TOKEN_PATH: tokensPath,
       },
     };
   }
