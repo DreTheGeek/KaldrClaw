@@ -240,17 +240,15 @@ function buildMcpConfig(): Record<string, any> {
       },
     }));
 
-    // Write tokens file from our refresh token
+    // Always write tokens file with current refresh token from env
     const tokensPath = join(calConfigDir, "tokens.json");
-    if (!existsSync(tokensPath)) {
-      writeFileSync(tokensPath, JSON.stringify({
-        access_token: "",
-        refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-        scope: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
-        token_type: "Bearer",
-        expiry_date: 0,
-      }));
-    }
+    writeFileSync(tokensPath, JSON.stringify({
+      access_token: "",
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      scope: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+      token_type: "Bearer",
+      expiry_date: 0,
+    }));
 
     console.log("[BOOT] Wrote Calendar MCP credential files");
 
@@ -278,16 +276,15 @@ function buildMcpConfig(): Record<string, any> {
       },
     }));
 
+    // Always write tokens file with current refresh token from env
     const driveTokensPath = join(driveConfigDir, "tokens.json");
-    if (!existsSync(driveTokensPath)) {
-      writeFileSync(driveTokensPath, JSON.stringify({
-        access_token: "",
-        refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-        scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/presentations",
-        token_type: "Bearer",
-        expiry_date: 0,
-      }));
-    }
+    writeFileSync(driveTokensPath, JSON.stringify({
+      access_token: "",
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/presentations",
+      token_type: "Bearer",
+      expiry_date: 0,
+    }));
 
     console.log("[BOOT] Wrote Drive MCP credential files");
 
