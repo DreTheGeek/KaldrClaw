@@ -140,6 +140,8 @@ async function spawnClaude(prompt: string, model: string): Promise<string> {
     "--dangerously-skip-permissions",
     "--model",
     model || "sonnet",
+    "--allowedTools",
+    "mcp__supabase,Read,Write,Edit,Bash,Glob,Grep",
   ];
 
   // Resume existing session if we have one
