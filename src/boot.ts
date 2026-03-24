@@ -264,6 +264,43 @@ function buildMcpConfig(): Record<string, any> {
     };
   }
 
+  // Google Drive/Docs/Sheets MCP — needs credential files like Calendar
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN) {
+    const driveConfigDir = join(WORKSPACE, ".drive-mcp");
+    if (!existsSync(driveConfigDir)) mkdirSync(driveConfigDir, { recursive: true });
+
+    const driveOauthPath = join(driveConfigDir, "gcp-oauth.keys.json");
+    writeFileSync(driveOauthPath, JSON.stringify({
+      installed: {
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uris: ["http://localhost"],
+      },
+    }));
+
+    const driveTokensPath = join(driveConfigDir, "tokens.json");
+    if (!existsSync(driveTokensPath)) {
+      writeFileSync(driveTokensPath, JSON.stringify({
+        access_token: "",
+        refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+        scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/presentations",
+        token_type: "Bearer",
+        expiry_date: 0,
+      }));
+    }
+
+    console.log("[BOOT] Wrote Drive MCP credential files");
+
+    config.mcpServers["google-drive"] = {
+      command: "npx",
+      args: ["-y", "@piotr-agier/google-drive-mcp"],
+      env: {
+        GOOGLE_DRIVE_OAUTH_CREDENTIALS: driveOauthPath,
+        GOOGLE_DRIVE_MCP_TOKEN_PATH: driveTokensPath,
+      },
+    };
+  }
+
   // GitHub MCP
   if (process.env.GITHUB_TOKEN) {
     config.mcpServers["github"] = {

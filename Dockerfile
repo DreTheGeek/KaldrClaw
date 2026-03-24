@@ -14,7 +14,8 @@ ENV PATH="/usr/local/bun/bin:$PATH"
 RUN npm install -g @anthropic-ai/claude-code@latest \
     @supabase/mcp-server-supabase@latest \
     @peakmojo/mcp-server-headless-gmail@latest \
-    @cocal/google-calendar-mcp@latest
+    @cocal/google-calendar-mcp@latest \
+    @piotr-agier/google-drive-mcp@latest
 
 # Create app directory
 WORKDIR /app
