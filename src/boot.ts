@@ -70,10 +70,11 @@ export async function boot(botName: string): Promise<{
     console.log("[BOOT] Wrote MEMORY.md");
   }
 
-  // Write .claude.json MCP config so Claude Code can access tools
+  // Write .mcp.json — Claude Code loads MCP servers from this file
   const mcpConfig = buildMcpConfig();
-  writeFileSync(join(WORKSPACE, ".claude.json"), JSON.stringify(mcpConfig, null, 2));
-  console.log("[BOOT] Wrote .claude.json (MCP config)");
+  writeFileSync(join(WORKSPACE, ".mcp.json"), JSON.stringify(mcpConfig, null, 2));
+  console.log("[BOOT] Wrote .mcp.json (MCP config)");
+  console.log("[BOOT] MCP servers configured:", Object.keys(mcpConfig.mcpServers).join(", "));
 
   // Initialize git repo in workspace (Claude Code expects this)
   const gitDir = join(WORKSPACE, ".git");
@@ -177,8 +178,10 @@ function buildMcpConfig(): Record<string, any> {
   // Supabase MCP — direct database access for the bot
   if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     config.mcpServers["supabase"] = {
-      command: "mcp-server-supabase",
+      command: "npx",
       args: [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
         "--supabase-url",
         process.env.SUPABASE_URL,
         "--supabase-service-role-key",
@@ -187,13 +190,14 @@ function buildMcpConfig(): Record<string, any> {
     };
   }
 
-  // Gmail MCP — headless email access
+  // Gmail MCP — headless email access (no browser needed)
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN) {
     config.mcpServers["gmail"] = {
-      command: "mcp-server-headless-gmail",
+      command: "npx",
+      args: ["-y", "@peakmojo/mcp-server-headless-gmail"],
       env: {
         GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
         GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN,
       },
     };
@@ -202,10 +206,11 @@ function buildMcpConfig(): Record<string, any> {
   // Google Calendar MCP
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN) {
     config.mcpServers["calendar"] = {
-      command: "google-calendar-mcp",
+      command: "npx",
+      args: ["-y", "@cocal/google-calendar-mcp"],
       env: {
         GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
         GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN,
       },
     };
