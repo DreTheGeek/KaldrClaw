@@ -76,6 +76,13 @@ export async function boot(botName: string): Promise<{
   console.log("[BOOT] Wrote .mcp.json (MCP config)");
   console.log("[BOOT] MCP servers configured:", Object.keys(mcpConfig.mcpServers).join(", "));
 
+  // Copy skills into workspace (.claude/skills/)
+  const skillsTarget = join(WORKSPACE, ".claude", "skills");
+  if (!existsSync(skillsTarget)) mkdirSync(skillsTarget, { recursive: true });
+  copySkills("/app/skills/shared", skillsTarget);
+  copySkills(`/app/skills/${botName}`, skillsTarget);
+  console.log("[BOOT] Skills loaded into workspace");
+
   // Initialize git repo in workspace (Claude Code expects this)
   const gitDir = join(WORKSPACE, ".git");
   if (!existsSync(gitDir)) {
@@ -261,4 +268,26 @@ function buildMcpConfig(): Record<string, any> {
   }
 
   return config;
+}
+
+function copySkills(sourceDir: string, targetDir: string) {
+  if (!existsSync(sourceDir)) return;
+  try {
+    const entries = require("fs").readdirSync(sourceDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const skillSource = join(sourceDir, entry.name);
+        const skillTarget = join(targetDir, entry.name);
+        if (!existsSync(skillTarget)) mkdirSync(skillTarget, { recursive: true });
+        // Copy SKILL.md and any other files
+        const files = require("fs").readdirSync(skillSource);
+        for (const file of files) {
+          const content = require("fs").readFileSync(join(skillSource, file), "utf-8");
+          writeFileSync(join(skillTarget, file), content);
+        }
+      }
+    }
+  } catch (err: any) {
+    console.error(`[BOOT] Error copying skills from ${sourceDir}:`, err.message);
+  }
 }
