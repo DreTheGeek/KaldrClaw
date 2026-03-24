@@ -83,6 +83,21 @@ export async function boot(botName: string): Promise<{
   copySkills(`/app/skills/${botName}`, skillsTarget);
   console.log("[BOOT] Skills loaded into workspace");
 
+  // Copy subagents into workspace (.claude/agents/)
+  const agentsTarget = join(WORKSPACE, ".claude", "agents");
+  if (!existsSync(agentsTarget)) mkdirSync(agentsTarget, { recursive: true });
+  const agentsSource = "/app/agents";
+  if (existsSync(agentsSource)) {
+    const agentFiles = require("fs").readdirSync(agentsSource);
+    for (const file of agentFiles) {
+      if (file.endsWith(".md")) {
+        const content = require("fs").readFileSync(join(agentsSource, file), "utf-8");
+        writeFileSync(join(agentsTarget, file), content);
+      }
+    }
+    console.log(`[BOOT] Subagents loaded: ${agentFiles.filter((f: string) => f.endsWith('.md')).join(', ')}`);
+  }
+
   // Initialize git repo in workspace (Claude Code expects this)
   const gitDir = join(WORKSPACE, ".git");
   if (!existsSync(gitDir)) {
