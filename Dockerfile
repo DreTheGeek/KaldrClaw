@@ -12,7 +12,9 @@ ENV PATH="/usr/local/bun/bin:$PATH"
 
 # Install Claude Code CLI + MCP servers (pre-installed so they don't download at runtime)
 RUN npm install -g @anthropic-ai/claude-code@latest \
-    @supabase/mcp-server-supabase@latest
+    @supabase/mcp-server-supabase@latest \
+    @peakmojo/mcp-server-headless-gmail@latest \
+    @cocal/google-calendar-mcp@latest
 
 # Create app directory
 WORKDIR /app

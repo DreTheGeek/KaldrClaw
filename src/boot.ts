@@ -187,6 +187,30 @@ function buildMcpConfig(): Record<string, any> {
     };
   }
 
+  // Gmail MCP — headless email access
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN) {
+    config.mcpServers["gmail"] = {
+      command: "mcp-server-headless-gmail",
+      env: {
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+        GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN,
+      },
+    };
+  }
+
+  // Google Calendar MCP
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN) {
+    config.mcpServers["calendar"] = {
+      command: "google-calendar-mcp",
+      env: {
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+        GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN,
+      },
+    };
+  }
+
   // GitHub MCP
   if (process.env.GITHUB_TOKEN) {
     config.mcpServers["github"] = {
