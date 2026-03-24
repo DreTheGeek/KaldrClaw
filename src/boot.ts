@@ -262,41 +262,10 @@ function buildMcpConfig(): Record<string, any> {
     };
   }
 
-  // Google Drive/Docs/Sheets MCP — needs credential files like Calendar
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN) {
-    const driveConfigDir = join(WORKSPACE, ".drive-mcp");
-    if (!existsSync(driveConfigDir)) mkdirSync(driveConfigDir, { recursive: true });
-
-    const driveOauthPath = join(driveConfigDir, "gcp-oauth.keys.json");
-    writeFileSync(driveOauthPath, JSON.stringify({
-      installed: {
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uris: ["http://localhost"],
-      },
-    }));
-
-    // Always write tokens file with current refresh token from env
-    const driveTokensPath = join(driveConfigDir, "tokens.json");
-    writeFileSync(driveTokensPath, JSON.stringify({
-      access_token: "",
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-      scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/presentations",
-      token_type: "Bearer",
-      expiry_date: 0,
-    }));
-
-    console.log("[BOOT] Wrote Drive MCP credential files");
-
-    config.mcpServers["google-drive"] = {
-      command: "npx",
-      args: ["-y", "@piotr-agier/google-drive-mcp"],
-      env: {
-        GOOGLE_DRIVE_OAUTH_CREDENTIALS: driveOauthPath,
-        GOOGLE_DRIVE_MCP_TOKEN_PATH: driveTokensPath,
-      },
-    };
-  }
+  // Google Drive/Docs/Sheets MCP — DISABLED until stability verified
+  // TODO: Re-enable after confirming it doesn't hang claude -p
+  // Package: @piotr-agier/google-drive-mcp
+  // Needs: GOOGLE_DRIVE_OAUTH_CREDENTIALS + GOOGLE_DRIVE_MCP_TOKEN_PATH
 
   // GitHub MCP
   if (process.env.GITHUB_TOKEN) {
@@ -316,14 +285,10 @@ function buildMcpConfig(): Record<string, any> {
     };
   }
 
-  // Firecrawl MCP — scrape/read full web pages
-  if (process.env.FIRECRAWL_API_KEY) {
-    config.mcpServers["firecrawl"] = {
-      command: "npx",
-      args: ["-y", "firecrawl-mcp"],
-      env: { FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY },
-    };
-  }
+  // Firecrawl MCP — DISABLED until stability verified
+  // TODO: Re-enable after confirming it doesn't hang claude -p
+  // Package: firecrawl-mcp
+  // Needs: FIRECRAWL_API_KEY
 
   // Tavily web search MCP (fallback if Brave not set)
   if (process.env.TAVILY_API_KEY) {
