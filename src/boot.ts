@@ -70,6 +70,20 @@ export async function boot(botName: string): Promise<{
     console.log("[BOOT] Wrote MEMORY.md");
   }
 
+  // Write .claude.json MCP config so Claude Code can access tools
+  const mcpConfig = buildMcpConfig();
+  writeFileSync(join(WORKSPACE, ".claude.json"), JSON.stringify(mcpConfig, null, 2));
+  console.log("[BOOT] Wrote .claude.json (MCP config)");
+
+  // Initialize git repo in workspace (Claude Code expects this)
+  const gitDir = join(WORKSPACE, ".git");
+  if (!existsSync(gitDir)) {
+    try {
+      const proc = Bun.spawnSync(["git", "init"], { cwd: WORKSPACE });
+      if (proc.exitCode === 0) console.log("[BOOT] Initialized git in workspace");
+    } catch {}
+  }
+
   // Write any additional seed files
   if (config.seed_files && typeof config.seed_files === "object") {
     for (const [filename, content] of Object.entries(config.seed_files)) {
@@ -155,4 +169,43 @@ ${config.autonomy === "supervised" ? "Plan and confirm before acting. Show your 
 `;
 
   return md;
+}
+
+function buildMcpConfig(): Record<string, any> {
+  const config: Record<string, any> = { mcpServers: {} };
+
+  // Supabase MCP — direct database access for the bot
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    config.mcpServers["supabase"] = {
+      command: "npx",
+      args: [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--supabase-url",
+        process.env.SUPABASE_URL,
+        "--supabase-service-role-key",
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+      ],
+    };
+  }
+
+  // GitHub MCP
+  if (process.env.GITHUB_TOKEN) {
+    config.mcpServers["github"] = {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-github"],
+      env: { GITHUB_TOKEN: process.env.GITHUB_TOKEN },
+    };
+  }
+
+  // Tavily web search MCP
+  if (process.env.TAVILY_API_KEY) {
+    config.mcpServers["tavily"] = {
+      command: "npx",
+      args: ["-y", "tavily-mcp"],
+      env: { TAVILY_API_KEY: process.env.TAVILY_API_KEY },
+    };
+  }
+
+  return config;
 }
